@@ -149,10 +149,21 @@ def zobraz_home():
 
 @app.route("/recenze")
 def zobraz_recenze():
-    all_reviews = list(reviews_collection.find())
-    for review in all_reviews:
-        review['review'] = str(review['_id'])
-        review['_id'] = str(review['_id'])
+    # Try to get cached data
+    cached_data = r.get("data:reviews")
+    
+    if cached_data:
+        app.logger.info("Reviews data loaded from cache")
+        all_reviews = json.loads(cached_data)
+    else:
+        app.logger.info("Reviews data fetched from MongoDB")
+        all_reviews = list(reviews_collection.find())
+        for review in all_reviews:
+            review['review'] = str(review['_id'])
+            review['_id'] = str(review['_id'])
+        # Cache data for 5 minutes
+        r.setex("data:reviews", 300, json.dumps(all_reviews))
+    
     return render_template("recenze.html", data=all_reviews)
 
 @app.route("/recenze/<review_id>")
@@ -210,9 +221,8 @@ def pridat_recenzi():
         }
         reviews_collection.insert_one(nova_recenze)
         
-        # Invalidate caches
-        r.delete("page:recenze")
-        r.delete("reviews_cache")
+        # Invalidate cache
+        r.delete("data:reviews")
         
         return redirect("/recenze")
 
@@ -221,7 +231,7 @@ def pridat_recenzi():
 def wipe_recenze():
     reviews_collection.delete_many({})
     # Invalidate cache
-    r.delete("reviews_cache")
+    r.delete("data:reviews")
     return "Recenze byly vymazány :("
 
 @app.route("/testcache")
@@ -229,7 +239,7 @@ def test_with_cache():
     times = []
     for i in range(10):
         start = time.time()
-        cached_data = r.get("reviews_cache")
+        cached_data = r.get("data:reviews")
         if cached_data:
             json.loads(cached_data)
         elapsed = time.time() - start
