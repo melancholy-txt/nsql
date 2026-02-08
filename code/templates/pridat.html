@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block podnadpis %}
+Přidat recenzi
+{% endblock %}
+
+{% block hlavniobsah %}
+<h2>Přidat novou recenzi</h2>
+<form action="/pridat" method="post">
+    <fieldset>
+        <label for="nazevhry">Název hry: </label>
+        <input type="text" id="nazevhry" name="nazev" placeholder="Zadej název hry" required>
+        <br>
+        <label for="zanrhry">Žánr: </label>
+        <input type="text" id="zanrhry" name="zanr" placeholder="Zadej žánr hry" required>
+        <br>
+        <label for="hodnocenihry">Hodnocení (1-10): </label>
+        <input type="number" id="hodnocenihry" name="hodnoceni" min="1" max="10" placeholder="1-10" required>
+        <br>
+        <label for="recenzehry">Recenze: </label>
+        <br>
+        <textarea id="recenzehry" name="recenze" rows="5" cols="50" placeholder="Napiš svou recenzi..." required></textarea>
+    </fieldset>
+    <button type="submit">Přidat recenzi</button>
+</form>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block podnadpis %}
+{{ recenze["nazev"] }}
+{% endblock %}
+
+{% block hlavniobsah %}
+<h2>{{ recenze["nazev"] }}</h2>
+<div class="review-detail">
+    <p><strong>Žánr:</strong> {{ recenze["zanr"] }}</p>
+    <p><strong>Hodnocení:</strong> {{ recenze["hodnoceni"] }}/10</p>
+    <h3>Recenze</h3>
+    <p>{{ recenze["recenze"] }}</p>
+</div>
+
+<hr>
+
+<h3>Komentáře ({{ comments|length }})</h3>
+
+{% if comments %}
+<ul style="list-style: none; padding: 0;">
+    {% for comment in comments %}
+    <li style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
+        <strong>{{ comment["author"] }}</strong>
+        <small>({{ comment["created_at"].strftime('%d.%m.%Y %H:%M') }})</small>
+        <p>{{ comment["text"] }}</p>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>Zatím žádné komentáře.</p>
+{% endif %}
+
+<h4>Přidat komentář</h4>
+<form action="/recenze/{{ recenze['_id'] }}/comment" method="POST">
+    <p>
+        <label for="author">Jméno:</label><br>
+        <input type="text" id="author" name="author" placeholder="Anonym" required>
+    </p>
+    <p>
+        <label for="text">Komentář:</label><br>
+        <textarea id="text" name="text" rows="4" cols="50" required></textarea>
+    </p>
+    <button type="submit">Odeslat komentář</button>
+</form>
+
+<p><a href="/recenze">← Zpět na seznam recenzí</a></p>
+{% endblock %}

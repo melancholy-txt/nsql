@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block podnadpis %}
+Recenze
+{% endblock %}
+
+{% block hlavniobsah %}
+<h2>Seznam recenzí her</h2>
+<ul>
+    {% for recenze in data %}
+    <li>
+        <ul style="list-style: none;">
+            <li><strong><a href="/recenze/{{ recenze['_id'] }}">{{ recenze["nazev"] }}</a></strong></li>
+            <li>Žánr: {{ recenze["zanr"] }}</li>
+            <li>Hodnocení: {{ recenze["hodnoceni"] }}/10</li>
+        </ul>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}

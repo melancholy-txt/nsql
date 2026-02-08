@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameReviews | {% block podnadpis %}{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <h1>🎮 Inuit</h1>
+    </header>
+    <nav>
+        <ul>
+            <li><a href="/home">O nás</a></li>
+            <li><a href="/recenze">Recenze her</a></li>
+            <li><a href="/pridat">Přidat recenzi</a></li>
+        </ul>
+    </nav>
+    <main>
+        {% block hlavniobsah %}{% endblock %}
+    </main>
+    <footer>
+        <p>Copyright &copy; Inuit 2026</p>
+    </footer>
+</body>
+</html>
