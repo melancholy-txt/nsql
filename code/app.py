@@ -47,6 +47,7 @@ def load_user(user_id):
     try:
         user_data = users_collection.find_one({"_id": ObjectId(user_id)})
         if user_data:
+            print(f"Loading user: {user_id} -> {user_data}")
             return User(user_data)
     except:
         pass
@@ -144,29 +145,15 @@ def register():
 @app.route("/")
 @app.route("/home")
 def zobraz_home():
-    return get_cached_page(
-        "page:home",
-        600,
-        lambda: render_template("home.html")
-    )
+    return render_template("home.html")
 
 @app.route("/recenze")
 def zobraz_recenze():
-    start_time = time.time()
-    
-    def render_page():
-        all_reviews = list(reviews_collection.find())
-        for review in all_reviews:
-            review['review'] = str(review['_id'])
-            review['_id'] = str(review['_id'])
-        return render_template("recenze.html", data=all_reviews)
-    
-    response = get_cached_page("page:recenze", 300, render_page)
-    
-    load_time = time.time() - start_time
-    app.logger.info(f"Recenze page loaded in {load_time*1000:.2f}ms")
-    
-    return response
+    all_reviews = list(reviews_collection.find())
+    for review in all_reviews:
+        review['review'] = str(review['_id'])
+        review['_id'] = str(review['_id'])
+    return render_template("recenze.html", data=all_reviews)
 
 @app.route("/recenze/<review_id>")
 def zobraz_recenzi_detail(review_id):
