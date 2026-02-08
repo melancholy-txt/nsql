@@ -1,9 +1,23 @@
 import uuid
 import pymongo
+from werkzeug.security import generate_password_hash
+from datetime import datetime
 
 mongo_client = pymongo.MongoClient("mongodb://admin:admin@mongodb:27017/")  
 db = mongo_client["reviews_db"]
 reviews_collection = db["reviews_collection"]
+users_collection = db["users_collection"]
+
+# Create admin user if not exists
+if not users_collection.find_one({"username": "admin"}):
+    admin_user = {
+        "username": "admin",
+        "password_hash": generate_password_hash("admin123"),
+        "is_admin": True,
+        "created_at": datetime.now()
+    }
+    users_collection.insert_one(admin_user)
+    print("Admin user created (username: admin, password: admin123)")
 
 recenze = [
     {

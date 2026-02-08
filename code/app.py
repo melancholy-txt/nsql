@@ -1,6 +1,10 @@
 import time
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, abort
+from functools import wraps
+from flask import Flask, render_template, request, redirect, abort, flash, url_for
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_session import Session
+from werkzeug.security import generate_password_hash, check_password_hash
 import redis
 import uuid
 import pymongo
@@ -8,14 +12,54 @@ from bson.objectid import ObjectId
 import json
 
 app = Flask(__name__)
+app.secret_key = 'your-secret-key-change-in-production'
+
+# Configure Flask-Session with Redis
+app.config['SESSION_TYPE'] = 'redis'
+app.config['SESSION_REDIS'] = redis.Redis(host='redis', port=6379)
+Session(app)
+
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Pro tuto akci se musíte přihlásit.'
 
 mongo_client = pymongo.MongoClient("mongodb://admin:admin@mongodb:27017/")  
 db = mongo_client["reviews_db"]
 reviews_collection = db["reviews_collection"]
 comments_collection = db["comments_collection"]
+users_collection = db["users_collection"]
 
 # Enable automatic decoding of responses
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
+
+
+class User(UserMixin):
+    def __init__(self, user_data):
+        self.id = str(user_data['_id'])
+        self.username = user_data['username']
+        self.is_admin = user_data.get('is_admin', False)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        user_data = users_collection.find_one({"_id": ObjectId(user_id)})
+        if user_data:
+            return User(user_data)
+    except:
+        pass
+    return None
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def get_cached_page(cache_key, expire_time, render_func):
@@ -34,6 +78,68 @@ def get_cached_page(cache_key, expire_time, render_func):
     app.logger.info(f"Page {cache_key} rendered and cached")
     
     return response
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect("/")
+    
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        
+        user_data = users_collection.find_one({"username": username})
+        if user_data and check_password_hash(user_data['password_hash'], password):
+            user = User(user_data)
+            login_user(user)
+            flash('Přihlášení úspěšné!', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page or "/")
+        else:
+            flash('Nesprávné uživatelské jméno nebo heslo.', 'error')
+    
+    return render_template("login.html")
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    flash('Odhlášení úspěšné.', 'success')
+    return redirect("/")
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if current_user.is_authenticated:
+        return redirect("/")
+    
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        password_confirm = request.form.get("password_confirm")
+        
+        if not username or not password:
+            flash('Vyplňte všechna pole.', 'error')
+            return render_template("register.html")
+        
+        if password != password_confirm:
+            flash('Hesla se neshodují.', 'error')
+            return render_template("register.html")
+        
+        if users_collection.find_one({"username": username}):
+            flash('Uživatelské jméno již existuje.', 'error')
+            return render_template("register.html")
+        
+        new_user = {
+            "username": username,
+            "password_hash": generate_password_hash(password),
+            "is_admin": False,
+            "created_at": datetime.now()
+        }
+        users_collection.insert_one(new_user)
+        flash('Registrace úspěšná! Nyní se můžete přihlásit.', 'success')
+        return redirect("/login")
+    
+    return render_template("register.html")
 
 @app.route("/")
 @app.route("/home")
@@ -82,6 +188,7 @@ def zobraz_recenzi_detail(review_id):
     return render_template("recenze_detail.html", recenze=review, comments=comments)
 
 @app.route("/recenze/<review_id>/comment", methods=["POST"])
+@login_required
 def pridat_komentar(review_id):
     try:
         review = reviews_collection.find_one({"_id": ObjectId(review_id)})
@@ -91,10 +198,9 @@ def pridat_komentar(review_id):
     if not review:
         abort(404)
     
-    
     new_comment = {
         "review_id": review_id,
-        "author": request.form.get("author", "Anonym"),
+        "author": current_user.username,
         "text": request.form["text"],
         "created_at": datetime.now()
     }
@@ -103,13 +209,10 @@ def pridat_komentar(review_id):
     return redirect(f"/recenze/{review_id}")
 
 @app.route("/pridat", methods=["GET", "POST"])
+@admin_required
 def pridat_recenzi():
     if request.method == "GET":
-        return get_cached_page(
-            "page:pridat",
-            600,
-            lambda: render_template("pridat.html")
-        )
+        return render_template("pridat.html")
     elif request.method == "POST":
         nova_recenze = {
             "id": str(uuid.uuid4()),
@@ -127,6 +230,7 @@ def pridat_recenzi():
         return redirect("/recenze")
 
 @app.route("/wipe")
+@admin_required
 def wipe_recenze():
     reviews_collection.delete_many({})
     # Invalidate cache

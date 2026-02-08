@@ -13,9 +13,27 @@
         <ul>
             <li><a href="/home">O nás</a></li>
             <li><a href="/recenze">Recenze her</a></li>
+            {% if current_user.is_authenticated and current_user.is_admin %}
             <li><a href="/pridat">Přidat recenzi</a></li>
+            {% endif %}
+            {% if current_user.is_authenticated %}
+            <li>Přihlášen: {{ current_user.username }}</li>
+            <li><a href="/logout">Odhlásit se</a></li>
+            {% else %}
+            <li><a href="/login">Přihlásit se</a></li>
+            <li><a href="/register">Registrace</a></li>
+            {% endif %}
         </ul>
     </nav>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <p class="flash-{{ category }}">{{ message }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
     <main>
         {% block hlavniobsah %}{% endblock %}
     </main>

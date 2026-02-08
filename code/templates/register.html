@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block podnadpis %}
+Registrace
+{% endblock %}
+
+{% block hlavniobsah %}
+<h2>Registrace</h2>
+<form method="POST">
+    <p>
+        <label for="username">Uživatelské jméno:</label><br>
+        <input type="text" id="username" name="username" required>
+    </p>
+    <p>
+        <label for="password">Heslo:</label><br>
+        <input type="password" id="password" name="password" required>
+    </p>
+    <p>
+        <label for="password_confirm">Potvrzení hesla:</label><br>
+        <input type="password" id="password_confirm" name="password_confirm" required>
+    </p>
+    <button type="submit">Zaregistrovat se</button>
+</form>
+<p>Již máte účet? <a href="/login">Přihlaste se</a></p>
+{% endblock %}

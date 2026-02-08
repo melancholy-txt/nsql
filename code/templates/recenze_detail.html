@@ -32,10 +32,10 @@
 {% endif %}
 
 <h4>Přidat komentář</h4>
+{% if current_user.is_authenticated %}
 <form action="/recenze/{{ recenze['_id'] }}/comment" method="POST">
     <p>
-        <label for="author">Jméno:</label><br>
-        <input type="text" id="author" name="author" placeholder="Anonym" required>
+        Přidáváte jako: <strong>{{ current_user.username }}</strong>
     </p>
     <p>
         <label for="text">Komentář:</label><br>
@@ -43,6 +43,9 @@
     </p>
     <button type="submit">Odeslat komentář</button>
 </form>
+{% else %}
+<p><a href="/login">Přihlaste se</a> pro přidání komentáře.</p>
+{% endif %}
 
 <p><a href="/recenze">← Zpět na seznam recenzí</a></p>
 {% endblock %}
